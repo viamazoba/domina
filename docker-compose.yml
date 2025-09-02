@@ -1,0 +1,41 @@
+version: '3.8'
+services:
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./auth-service/src:/app/src
+    environment:
+      - NODE_ENV=development
+      - DB_URI=mongodb://mongo:27017/auth
+
+  tasks-service:
+    build: ./tasks-service
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./tasks-service/src:/app/src
+    environment:
+      - NODE_ENV=development
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - auth-service
+      - tasks-service
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
