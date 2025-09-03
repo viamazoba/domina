@@ -22,12 +22,7 @@ const userSchema: Schema = new Schema({
     name: {
         type: String,
         require: true
-    },
-    confirmed: {
-        type: Boolean,
-        require: true,
-        default: false
-    },
+    }
 })
 
 const User = mongoose.model<IUser>('User', userSchema)

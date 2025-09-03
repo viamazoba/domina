@@ -1,0 +1,32 @@
+import { Router } from "express";
+import { body } from "express-validator";
+import { AuthController } from "../controllers/Auth.controller";
+import { handleInputErrors } from "../middleware/validations";
+
+const router = Router()
+
+router.post('/create-account',
+    body('name').notEmpty().withMessage('Name can\'t be empty'),
+    body('password').isLength({ min: 6 }).withMessage('Password minimun length is six'),
+    body('password_confirmation').custom((value, { req }) => {
+        if (value !== req.body.password) {
+            throw new Error('Passwaords are not equal')
+        }
+
+        return true
+    }),
+    body('email').notEmpty().withMessage('Email not valid'),
+    handleInputErrors,
+    AuthController.createAccount
+)
+
+
+router.post('/login',
+    body('email').notEmpty().withMessage('Email not valid'),
+    body('password').notEmpty().withMessage('Password can\'t be empty'),
+    handleInputErrors,
+    AuthController.login
+)
+
+
+export default router
