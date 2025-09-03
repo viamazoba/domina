@@ -1,41 +1,80 @@
-version: '3.8'
 services:
+  # ------------------ MONGODB: AUTH ------------------
+  auth-mongo:
+    image: mongo:7
+    container_name: auth-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpass
+    volumes:
+      - ./data/auth-mongo:/data/db
+      - ./mongo-init/auth:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--username", "root", "--password", "rootpass", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ------------------ MONGODB: TASKS ------------------
+  tasks-mongo:
+    image: mongo:7
+    container_name: tasks-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpass
+    volumes:
+      - ./data/tasks-mongo:/data/db
+      - ./mongo-init/tasks:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--username", "root", "--password", "rootpass", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ------------------ AUTH SERVICE ------------------
   auth-service:
-    build: ./auth-service
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    restart: unless-stopped
+    env_file:
+      - ./auth-service/.env
+    depends_on:
+      auth-mongo:
+        condition: service_healthy
     ports:
-      - "3001:3000"
-    volumes:
-      - ./auth-service/src:/app/src
-    environment:
-      - NODE_ENV=development
-      - DB_URI=mongodb://mongo:27017/auth
+      - "4000:4000"
 
+  # ------------------ TASKS SERVICE ------------------
   tasks-service:
-    build: ./tasks-service
+    build:
+      context: ./tasks-service
+      dockerfile: Dockerfile
+    container_name: tasks-service
+    restart: unless-stopped
+    env_file:
+      - ./tasks-service/.env
+    depends_on:
+      tasks-mongo:
+        condition: service_healthy
     ports:
-      - "3002:3000"
-    volumes:
-      - ./tasks-service/src:/app/src
-    environment:
-      - NODE_ENV=development
+      - "4001:4001"
 
+  # ------------------ FRONTEND (React + Vite -> Nginx) ------------------
   frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_AUTH: "http://localhost:4000/api/v1/auth/"
+        VITE_API_TASK: "http://localhost:4001/api/v1/task"
+    container_name: frontend
+    restart: unless-stopped
     depends_on:
       - auth-service
       - tasks-service
-
-  mongo:
-    image: mongo:latest
     ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-
-volumes:
-  mongo_data:
+      - "3000:3000"
