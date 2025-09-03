@@ -1,8 +1,15 @@
 import type { Request, Response } from "express"
-import User from "../models/User.model"
+import User, { IUser } from "../models/User.model"
 import { checkPassword, hashPassword } from "../utils/auth"
 import { generateJWT } from "../utils/jwt"
 
+declare global {
+    namespace Express {
+        interface Request {
+            user?: IUser
+        }
+    }
+}
 
 export class AuthController {
 
@@ -31,6 +38,7 @@ export class AuthController {
     static login = async (req: Request, res: Response) => {
         try {
             const { email, password } = req.body
+
             const user = await User.findOne({ email })
 
             if (!user) {
@@ -48,24 +56,12 @@ export class AuthController {
             const token = generateJWT({
                 id: user.id
             })
-            res.send(token)
+
+            res.status(200).json({ token })
 
         } catch (error) {
             res.status(500).json({ error: 'There was an error' })
         }
     }
 
-    static checkPassword = async (req: Request, res: Response) => {
-        const { password } = req.body
-
-        const user = await User.findById(req.user.id)
-        const isPasswordCorrect = await checkPassword(password, user.password)
-
-        if (!isPasswordCorrect) {
-            const error = new Error('Incorrect Password')
-            return res.status(401).json({ error: error.message })
-        }
-
-        res.send('Correct Password')
-    }
 }
