@@ -4,10 +4,17 @@ import Task from "../models/Task.model";
 export class TaskController {
 
     static createTask = async (req: Request, res: Response) => {
+
+        const newTask = {
+            taskName: req.body.taskName,
+            description: req.body.description,
+            userId: req.userId
+        }
         try {
-            const task = new Task(req.body);
+            const task = new Task(newTask);
             await task.save();
             res.status(201).json({ message: "Task created successfully", task });
+
         } catch (error) {
             console.error(error);
             res.status(500).json({ message: "Error creating task" });
