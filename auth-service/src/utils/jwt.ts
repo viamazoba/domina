@@ -3,7 +3,7 @@ import Types from 'mongoose'
 
 
 type UserPayload = {
-    id: Types.ObjectId
+    userId: Types.ObjectId
 }
 
 export const generateJWT = (payload: UserPayload) => {
